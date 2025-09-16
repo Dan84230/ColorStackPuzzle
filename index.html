@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Stack Puzzle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90vw;
+            text-align: center;
+            position: relative;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .level, .moves {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .columns-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            min-height: 300px;
+        }
+
+        .column {
+            width: 60px;
+            height: 280px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .column:hover {
+            background: rgba(0, 0, 0, 0.15);
+            transform: scale(1.02);
+        }
+
+        .column.selected {
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .block {
+            width: 50px;
+            height: 40px;
+            border-radius: 8px;
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .block:hover {
+            transform: scale(1.05);
+        }
+
+        .block.moving {
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .red { background: linear-gradient(45deg, #ff4757, #ff3742); }
+        .blue { background: linear-gradient(45deg, #3742fa, #2f3542); }
+        .green { background: linear-gradient(45deg, #2ed573, #1e90ff); }
+        .yellow { background: linear-gradient(45deg, #ffa502, #ff6348); }
+        .purple { background: linear-gradient(45deg, #a55eea, #8854d0); }
+        .orange { background: linear-gradient(45deg, #ff6b35, #f7931e); }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .success-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #2ed573, #7bed9f);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: none;
+            animation: celebrate 0.5s ease;
+        }
+
+        @keyframes celebrate {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .instructions {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            .column {
+                width: 45px;
+                height: 250px;
+            }
+            
+            .block {
+                width: 35px;
+                height: 30px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="title">🎯 Color Stack Puzzle</div>
+            <div class="level-info">
+                <div class="level">Level <span id="currentLevel">1</span></div>
+                <div class="moves">Mouvements: <span id="moveCount">0</span></div>
+            </div>
+        </div>
+
+        <div class="columns-container" id="gameBoard">
+            <!-- Les colonnes seront générées dynamiquement -->
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="resetLevel()">🔄 Reset</button>
+            <button class="btn" onclick="nextLevel()">⏭️ Suivant</button>
+        </div>
+
+        <div class="instructions">
+            Cliquez sur une colonne pour sélectionner, puis sur une autre pour déplacer.<br>
+            Empilez toutes les couleurs ensemble dans des colonnes séparées !
+        </div>
+
+        <div class="success-message" id="successMessage">
+            🎉 Niveau terminé ! 🎉
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 1;
+        let maxLevel = 10;
+        let moves = 0;
+        let selectedColumn = null;
+        let gameState = [];
+
+        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        const colorNames = ['R', 'B', 'V', 'J', 'P', 'O'];
+
+        // Configuration des niveaux
+        const levelConfigs = [
+            { columns: 3, colors: 2, blocksPerColor: 2 }, // Level 1
+            { columns: 3, colors: 2, blocksPerColor: 3 }, // Level 2
+            { columns: 4, colors: 3, blocksPerColor: 2 }, // Level 3
+            { columns: 4, colors: 3, blocksPerColor: 3 }, // Level 4
+            { columns: 5, colors: 3, blocksPerColor: 3 }, // Level 5
+            { columns: 5, colors: 4, blocksPerColor: 3 }, // Level 6
+            { columns: 6, colors: 4, blocksPerColor: 3 }, // Level 7
+            { columns: 6, colors: 4, blocksPerColor: 4 }, // Level 8
+            { columns: 7, colors: 5, blocksPerColor: 3 }, // Level 9
+            { columns: 7, colors: 5, blocksPerColor: 4 }  // Level 10
+        ];
+
+        function initializeGame() {
+            const config = levelConfigs[currentLevel - 1];
+            gameState = [];
+            
+            // Créer les colonnes
+            for (let i = 0; i < config.columns; i++) {
+                gameState.push([]);
+            }
+
+            // Créer les blocs colorés
+            let blocks = [];
+            for (let i = 0; i < config.colors; i++) {
+                for (let j = 0; j < config.blocksPerColor; j++) {
+                    blocks.push(i);
+                }
+            }
+
+            // Mélanger les blocs
+            blocks = shuffleArray(blocks);
+
+            // Distribuer les blocs dans les premières colonnes (laisser des colonnes vides pour la résolution)
+            const distributionColumns = Math.min(config.columns - 1, 3);
+            blocks.forEach((colorIndex, index) => {
+                const columnIndex = index % distributionColumns;
+                gameState[columnIndex].push(colorIndex);
+            });
+
+            renderGame();
+            moves = 0;
+            updateUI();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function renderGame() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+
+            gameState.forEach((column, columnIndex) => {
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'column';
+                columnDiv.onclick = () => selectColumn(columnIndex);
+
+                column.forEach((colorIndex, blockIndex) => {
+                    const block = document.createElement('div');
+                    block.className = `block ${colors[colorIndex]}`;
+                    block.textContent = colorNames[colorIndex];
+                    columnDiv.appendChild(block);
+                });
+
+                gameBoard.appendChild(columnDiv);
+            });
+        }
+
+        function selectColumn(columnIndex) {
+            const columns = document.querySelectorAll('.column');
+            
+            if (selectedColumn === null) {
+                // Sélectionner la colonne si elle n'est pas vide
+                if (gameState[columnIndex].length > 0) {
+                    selectedColumn = columnIndex;
+                    columns[columnIndex].classList.add('selected');
+                }
+            } else {
+                // Déplacer le bloc
+                if (selectedColumn === columnIndex) {
+                    // Désélectionner si on clique sur la même colonne
+                    columns[selectedColumn].classList.remove('selected');
+                    selectedColumn = null;
+                } else {
+                    moveBlock(selectedColumn, columnIndex);
+                    columns[selectedColumn].classList.remove('selected');
+                    selectedColumn = null;
+                }
+            }
+        }
+
+        function moveBlock(fromColumn, toColumn) {
+            if (gameState[fromColumn].length === 0) return;
+
+            const block = gameState[fromColumn].pop();
+            gameState[toColumn].push(block);
+            
+            moves++;
+            renderGame();
+            updateUI();
+
+            // Ajouter animation
+            setTimeout(() => {
+                const targetColumn = document.querySelectorAll('.column')[toColumn];
+                const topBlock = targetColumn.querySelector('.block:last-child');
+                if (topBlock) {
+                    topBlock.classList.add('moving');
+                    setTimeout(() => topBlock.classList.remove('moving'), 500);
+                }
+            }, 100);
+
+            // Vérifier la victoire
+            if (checkWin()) {
+                setTimeout(showSuccess, 500);
+            }
+        }
+
+        function checkWin() {
+            const config = levelConfigs[currentLevel - 1];
+            let completedColors = 0;
+
+            // Vérifier chaque couleur
+            for (let colorIndex = 0; colorIndex < config.colors; colorIndex++) {
+                let colorFound = false;
+                
+                // Chercher une colonne qui contient uniquement cette couleur
+                for (let column of gameState) {
+                    if (column.length === config.blocksPerColor && 
+                        column.every(block => block === colorIndex)) {
+                        completedColors++;
+                        colorFound = true;
+                        break;
+                    }
+                }
+            }
+
+            return completedColors === config.colors;
+        }
+
+        function showSuccess() {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+                if (currentLevel < maxLevel) {
+                    currentLevel++;
+                    initializeGame();
+                } else {
+                    alert('🎉 Félicitations ! Vous avez terminé tous les niveaux ! 🎉');
+                }
+            }, 2000);
+        }
+
+        function resetLevel() {
+            selectedColumn = null;
+            document.querySelectorAll('.column').forEach(col => col.classList.remove('selected'));
+            initializeGame();
+        }
+
+        function nextLevel() {
+            if (currentLevel < maxLevel) {
+                currentLevel++;
+                resetLevel();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('currentLevel').textContent = currentLevel;
+            document.getElementById('moveCount').textContent = moves;
+        }
+
+        // Initialiser le jeu
+        initializeGame();
+    </script>
+</body>
+</html>
